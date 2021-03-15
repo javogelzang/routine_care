@@ -1,5 +1,13 @@
 #Bioinformatics 11-3
-exprsVijver <- read_delim("Documents/ADS Master/Routine Care/Lab Sessions/exprsVijver.txt", 
-                          "\t", escape_double = FALSE, trim_ws = TRUE)
+library(glmnet)
 
+setwd("Documents/ADS Master/Routine Care/Lab Sessions")
+df_expr <- read.delim("exprsVijver.txt")
+df_phen <- read.delim("pdatavijver.txt")
+df_expr_t <- t(df_expr)
+y <- df_phen$event_death
+analysis_frame <- data.frame(df_expr_t,y=as.factor(y))
 
+x_features <- model.matrix(y ~ ., analysis_frame)
+
+cv.lasso <- cv.glmnet(x - x_features, y - analysis_frame$y, alpha - 1, family = 'binomial')
