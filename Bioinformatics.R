@@ -42,5 +42,64 @@ plot(cvridge)
 beta.min <- cvlasso$glmnet.fit$beta[,cvlasso$index["min",]]
 beta.min[beta.min!=0]
 
-cv.lasso <- cv.glmnet(x - x_features, y - analysis_frame$y, alpha - 1, family = 'binomial')
-coef(cv.lasso, cv.lasso$lambda.min)
+#selected genes with 1se lambda
+beta.1se <- cvlasso$glmnet.fit$beta[,cvlasso$index["1se",]]
+beta.1se[beta.1se!=0]
+
+#Compare
+beta.min.1se <- cbind(beta.min,beta.1se)[beta.min!=0,]
+beta.min.1se
+
+#Tuning: crossvalidation to find optimal lambda. loss function misclassification error
+cvlasso.class = cv.glmnet(x=t(df_expr),
+                          y=vijverdata$event_death,
+                          family = "binomial",
+                          alpha=1,
+                          type.measure="class")
+plot(cvlasso.class)
+
+#Elastic net using the caret package/ default loss: accuracy
+cv_5 = trainControl(method = "cv", number = 5)
+
+enet1 = train(
+  event_death ~ ., data = vijverdata,
+  method = "glmnet",
+  trControl = cv_5,
+  #tuneLength = 10
+)
+enet1
+
+#Simply extract the best result (or tuning parameters) using a quick helper function.
+get_best_result = function(caret_fit) {
+  best = which(rownames(caret_fit$results) == rownames(caret_fit$bestTune))
+  best_result = caret_fit$results[best, ]
+  rownames(best_result) = NULL
+  best_result
+}
+
+get_best_result(enet1)
+
+#SVM using the caret package/ default loss: accuracy
+cv_5 = trainControl(method = "cv", number = 5)
+
+svmlin1 = train(
+  event_death ~ ., data = vijverdata,
+  method = "svmLinear",
+  trControl = cv_5,
+  tuneGrid = data.frame(C=c(0.0001,0.001,0.01,0.1,1,10) )
+)
+svmlin1
+
+#Use Recursive Feature Elimination to find the simplest set of genes predicting best in repeated cross validation
+svmProfile <- rfe(x=t(df_expr),
+                  y=vijverdata$event_death,
+                  sizes = c(2, 5, 10, 20),
+                  rfeControl = rfeControl(functions = lmFuncs,
+                                          method = "repeatedcv",
+                                          repeats = 5,
+                                          verbose = FALSE),
+                  ## pass options to train()
+                  method = "svmLinear")
+
+svmProfile
+plot(lmProfile, type = c("o"))
