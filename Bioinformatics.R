@@ -98,7 +98,6 @@ svmProfile <- rfe(x=t(df_expr),
                                           method = "repeatedcv",
                                           repeats = 5,
                                           verbose = FALSE),
-                  ## pass options to train()
                   method = "svmLinear")
 
 svmProfile
