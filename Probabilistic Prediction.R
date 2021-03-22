@@ -47,13 +47,14 @@ summary(heart.fit)
 pred.test <- predict(heart.fit,newdata=heart.comp[-train_rows,],type="response")
 heart.pred = prediction(pred.test,heart.comp[-train_rows,]$hd)
 heart.perf = performance(heart.pred,"tpr","fpr")
-#compute area under ROC curve
+
+#Compute area under ROC curve
 auc <- performance(heart.pred,"auc")
 auc <- unlist(slot(auc, "y.values"))
 plot(heart.perf, main="ROC Curve for logistic model on the test data",col=2,lwd=2)
 abline(a=0,b=1,lwd=2,lty=2,col="gray")
 
-# calibration plot, through the function val.prob from the rms package
+#Calibration plot, through the function val.prob from the rms package
 v <- val.prob(p=pred.test,y=heart.comp[-train_rows,]$hd==1)
 c(auc=auc,cal.slope=v["Slope"])
 
@@ -71,9 +72,20 @@ test.decisioncurve <- decision_curve(hd~predicted.hd,
 
 plot_decision_curve(test.decisioncurve, legend.position = "topright")
 
-#Now on your own:
 #Q1: check how much ovefitting there is, by determining AUC, calibration and decision curve on the training data
-traindata <- heart.comp[!-train_rows,]
+pred.train_test <- predict(heart.fit,newdata=heart.comp[train_rows,],type="response")
+heart.train_pred = prediction(pred.train_test,heart.comp[train_rows,]$hd)
+heart.train_perf = performance(heart.train_pred,"tpr","fpr")
+
+#Compute the ROC with AUC
+auc_train <- performance(heart.train_pred,"auc")
+auc_train <- unlist(slot(auc_train, "y.values"))
+plot(heart.train_perf, main="ROC Curve for logistic model on the test data",col=2,lwd=2)
+abline(a=0,b=1,lwd=2,lty=2,col="gray")
+
+#Compute the calibration plot
+v <- val.prob(p=pred.train_test,y=heart.comp[train_rows,]$hd==1)
+c(auc=auc_train,cal.slope=v["Slope"])
 
 #Q2: repeat the training test split 100 times and take the average of auc and calibration slope on the test data sets, to be less prone to chance findings
 #Q3: make a better calibrated (less overfitted) model
